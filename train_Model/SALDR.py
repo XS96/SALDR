@@ -10,24 +10,26 @@ import math
 import time
 import os
 
+# Enable GPU
 tf.compat.v1.reset_default_graph()
 os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 config = tf.compat.v1.ConfigProto()
-config.gpu_options.allow_growth = True   # 不全部占满显存, 按需分配
+config.gpu_options.allow_growth = True   
 sess = tf.compat.v1.Session(config=config)
 tf.compat.v1.keras.backend.set_session(sess)
 
-envir = 'outdoor'  # 'indoor' or 'outdoor'
+
 # image params
 img_height = 32
 img_width = 32
 img_channels = 2
 img_total = img_height * img_width * img_channels  # 2048
 # network params
-encoded_dim1 = 256  # compress rate=1/4->dim.=512
-encoded_dim2 = 128  # compress rate=1/8->dim.=256
-encoded_dim3 = 64  # compress rate=1/16->dim.=128
-encoded_dim4 = 32   # compress rate=1/32->dim.=64
+envir = 'outdoor'  # 'indoor' or 'outdoor'
+encoded_dim1 = 256  # compress rate=1/8
+encoded_dim2 = 128  # compress rate=1/16
+encoded_dim3 = 64  # compress rate=1/32
+encoded_dim4 = 32   # compress rate=1/64
 
 batchsize = 200
 limit1 = 50
@@ -156,7 +158,7 @@ def DenseRefine(x):
     return x
 
 
-# Bulid the autoencoder model of CsiNet
+# Bulid the autoencoder model of SALDR
 def residual_network(x):
     ip = x
     # encoder Net
@@ -228,8 +230,8 @@ def residual_network(x):
     x = keras.layers.concatenate([x1, x2, x3, x4], axis=1)
     return x
 
-
-def SM_loss(y_actual, y_pred):    #
+# Total loss function
+def SM_loss(y_actual, y_pred):    
     y_pred1 = y_pred[:, 0:2, :, :]
     y_pred2 = y_pred[:, 2:4, :, :]
     y_pred3 = y_pred[:, 4:6, :, :]
