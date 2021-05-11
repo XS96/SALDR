@@ -10,28 +10,29 @@ import math
 import time
 import os
 
-
+# Enable GPU
 tf.compat.v1.reset_default_graph()
 os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 config = tf.compat.v1.ConfigProto()
-config.gpu_options.allow_growth = True   # 不全部占满显存, 按需分配
+config.gpu_options.allow_growth = True   
 sess = tf.compat.v1.Session(config=config)
 tf.compat.v1.keras.backend.set_session(sess)
 
-envir = 'indoor'  # 'indoor' or 'outdoor'
+
 # image params
 img_height = 32
 img_width = 32
 img_channels = 2
 img_total = img_height * img_width * img_channels  # 2048
 # network params
-encoded_dim1 = 256  # compress rate=1/4->dim.=512
-encoded_dim2 = 128  # compress rate=1/8->dim.=256
-encoded_dim3 = 64  # compress rate=1/16->dim.=128
-encoded_dim4 = 32   # compress rate=1/32->dim.=64
+envir = 'indoor'  # 'indoor' or 'outdoor'
+encoded_dim1 = 256  # compress rate=1/8
+encoded_dim2 = 128  # compress rate=1/16
+encoded_dim3 = 64  # compress rate=1/32
+encoded_dim4 = 32   # compress rate=1/64
 
 batchsize = 200
-limit1 = 50
+limit1 = 50     # split to generate mixed data
 limit2 = 100
 limit3 = 150
 
@@ -159,7 +160,7 @@ def DenseRefine(x):
     return x
 
 
-# Bulid the autoencoder model of CsiNet
+# Bulid the autoencoder model of SALDR
 def residual_network(x):
     ip = x
     # encoder Net
@@ -184,7 +185,7 @@ def residual_network(x):
     x1 = LeakyReLU()(x1)
 
     x1 = Conv2D(2, (3, 3), padding='same', data_format="channels_first", name='encoder_conv4')(x1)  #
-    # x = tf.add(x1, ip)         # concate or add
+    # x = tf.add(x1, ip)         # concat or add
     x = keras.layers.concatenate([x1, ip], axis=1)
     x = Conv2D(2, (1, 1), padding='same', data_format="channels_first", name='encoder_conv5')(x)
     x = BatchNormalization()(x)
@@ -223,7 +224,7 @@ def residual_network(x):
     x3 = Reshape((img_channels, img_height, img_width,))(x3)  # reshape to real channel and im channel
     x3 = DenseRefine(x3)
     x3 = Conv2D(2, (3, 3), activation='sigmoid', padding='same', data_format="channels_first")(x3)
-    # decoder Net for CR:32
+    # decoder Net for CR:64
     x4 = Reshape((img_channels, img_height, img_width,))(x4)  # reshape to real channel and im channel
     x4 = DenseRefine(x4)
     x4 = Conv2D(2, (3, 3), activation='sigmoid', padding='same', data_format="channels_first")(x4)
@@ -231,7 +232,7 @@ def residual_network(x):
     x = keras.layers.concatenate([x1, x2, x3, x4], axis=1)
     return x
 
-
+# Total loss function
 def SM_loss(y_actual, y_pred):    #
     y_pred1 = y_pred[:, 0:2, :, :]
     y_pred2 = y_pred[:, 2:4, :, :]
@@ -390,7 +391,6 @@ mse = np.sum(abs(x_test_C - x_hat_C) ** 2, axis=1)
 
 print("In " + envir + " environment")
 print("NMSE of CR:32 is", 10 * math.log10(np.mean(mse / power)))
-# print("SM_CsiNet+: Correlation of CR:16 is ", np.mean(rho))
 
 # ######################################################################################################3
 X_test = np.reshape(X_test, (len(X_test), img_height, 125))  # 20000*32*125
@@ -419,7 +419,6 @@ mse = np.sum(abs(x_test_C - x_hat_C) ** 2, axis=1)
 
 print("In " + envir + " environment")
 print("NMSE of CR:64 is", 10 * math.log10(np.mean(mse / power)))
-# print("SM_CsiNet+: Correlation of CR:32 is ", np.mean(rho))
 
 
 
