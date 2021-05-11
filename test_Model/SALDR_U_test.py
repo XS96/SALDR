@@ -10,17 +10,14 @@ import math
 import time
 import os
 
-
+# Enable GPU
 tf.compat.v1.reset_default_graph()
 os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 config = tf.compat.v1.ConfigProto()
-config.gpu_options.allow_growth = True   # 不全部占满显存, 按需分配
+config.gpu_options.allow_growth = True   #
 sess = tf.compat.v1.Session(config=config)
 tf.compat.v1.keras.backend.set_session(sess)
 
-envir = 'indoor'  # 'indoor' or 'outdoor'
-B = 3       # quantization bits; set B <= 0 to disable quantization
-CR = 8      # compression ratio
 
 # image params
 img_height = 32
@@ -28,13 +25,16 @@ img_width = 32
 img_channels = 2
 img_total = img_height * img_width * img_channels  # 2048
 # network params
-encoded_dim1 = 256  # compress rate=1/4->dim.=512
-encoded_dim2 = 128  # compress rate=1/8->dim.=256
-encoded_dim3 = 64  # compress rate=1/16->dim.=128
-encoded_dim4 = 32   # compress rate=1/32->dim.=64
+envir = 'indoor'  # 'indoor' or 'outdoor'
+B = 3       # quantization bits; set B <= 0 to disable quantization
+CR = 8      # compression ratio
+encoded_dim1 = 256  # compress rate=1/8
+encoded_dim2 = 128  # compress rate=1/16
+encoded_dim3 = 64  # compress rate=1/32
+encoded_dim4 = 32   # compress rate=1/64
 
 batchsize = 200
-limit1 = 50
+limit1 = 50  
 limit2 = 100
 limit3 = 150
 
@@ -213,7 +213,7 @@ def residual_block_decoded(y, n):
     return y
 
 
-# Bulid the autoencoder model of CsiNet
+# Bulid the autoencoder model of SALDR
 def residual_network(x):
     ip = x
     # encoder Net
@@ -256,7 +256,7 @@ def residual_network(x):
     encoded3 = Activation('sigmoid')(encoded3)
     encoded4 = Dense(encoded_dim4, activation='linear', name='encoder_cr64_dense')(encoded3)
     encoded4 = Activation('sigmoid')(encoded4)
-    if B > 0:
+    if B > 0:       
         encoded1 = QuantizationLayer(B)(encoded1)
         encoded2 = QuantizationLayer(B)(encoded2)
         encoded3 = QuantizationLayer(B)(encoded3)
