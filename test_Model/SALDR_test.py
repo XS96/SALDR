@@ -32,7 +32,7 @@ encoded_dim3 = 64  # compress rate=1/32
 encoded_dim4 = 32   # compress rate=1/64
 
 batchsize = 200
-limit1 = 50     # split to generate mixed data
+limit1 = 50     
 limit2 = 100
 limit3 = 150
 
