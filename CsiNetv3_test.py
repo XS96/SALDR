@@ -28,7 +28,7 @@ img_channels = 2
 img_total = img_height * img_width * img_channels  # 2048
 # network params
 envir = 'indoor'  # 'indoor' or 'outdoor'
-encoded_dim1 = 256  # compress rate=1/4->dim.=512
+encoded_dim1 = 256  # compress rate=1/4
 
 batchsize = 200
 
