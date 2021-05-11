@@ -9,23 +9,23 @@ import numpy as np
 import math
 import time
 import os
-# from clr_callback import CyclicLR
 
-
+# Enable GPU
 tf.compat.v1.reset_default_graph()
 os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 config = tf.compat.v1.ConfigProto()
-config.gpu_options.allow_growth = True   # 不全部占满显存, 按需分配
+config.gpu_options.allow_growth = True  
 sess = tf.compat.v1.Session(config=config)
 tf.compat.v1.keras.backend.set_session(sess)
 
-envir = 'indoor'  # 'indoor' or 'outdoor'
+
 # image params
 img_height = 32
 img_width = 32
 img_channels = 2
 img_total = img_height * img_width * img_channels  # 2048
 # network params
+envir = 'indoor'  # 'indoor' or 'outdoor'
 encoded_dim1 = 256  # compress rate=1/4->dim.=512
 encoded_dim2 = 128  # compress rate=1/8->dim.=256
 encoded_dim3 = 64  # compress rate=1/16->dim.=128
@@ -134,7 +134,7 @@ def residual_block_decoded(y, n):
     return y
 
 
-# Bulid the autoencoder model of CsiNet
+# Bulid the autoencoder model of SALDR
 def residual_network(x):
     ip = x
     # encoder Net
@@ -215,7 +215,7 @@ def residual_network(x):
     x = Conv2D(2, (3, 3), activation='sigmoid', padding='same', data_format="channels_first", name='decoder_convo')(x)
     return x
 
-
+# Total loss function
 def SM_loss(y_actual, y_pred):    #
     y_pred1 = y_pred[0:limit1, :, :, :]
     y_pred2 = y_pred[limit1:limit2, :, :, :]
@@ -277,7 +277,7 @@ reduce_lr = keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.6, patien
 early_stopping = keras.callbacks.EarlyStopping(monitor='val_loss', patience=80, mode='auto',
                                                verbose=0, min_delta=3e-6)
 # #
-ckfile = 'SA19S_' + envir + time.strftime('%m-%d_%H-%M')
+ckfile = 'SALDR_' + envir + time.strftime('%m-%d_%H-%M')
 filepath = "../SALDR_result/ck_%s.h5" % ckfile
 ck = keras.callbacks.ModelCheckpoint(filepath, monitor='val_loss', verbose=1, save_best_only=True, mode='auto',
                                      save_weights_only=True)
@@ -293,13 +293,13 @@ autoencoder.fit(x_train, x_train,
 tStart = time.time()
 x_hat = autoencoder.predict(x_test)
 tEnd = time.time()
-print("It cost %f sec" % ((tEnd - tStart) / x_test.shape[0]))  # calculate the time of recontribute the CSI for
-# every channel matrix
+print("It cost %f sec" % ((tEnd - tStart) / x_test.shape[0]))  # calculate the time of recontribute the CSI
+
 
 # Calcaulating the NMSE and rho
 if envir == 'indoor':
     mat = sio.loadmat('../data/DATA_HtestFin_all.mat')
-    X_test = mat['HF_all']  # array     20000*4000 complex   4000=32*125   non_truncated data?
+    X_test = mat['HF_all']  # array     20000*4000 complex   4000=32*125  
 
 elif envir == 'outdoor':
     mat = sio.loadmat('../data/DATA_HtestFout_all.mat')
@@ -319,7 +319,7 @@ for i in range(1, batch_num):
 
 x_test_cr4_real = np.reshape(x_test_cr4[:, 0, :, :], (len(x_test_cr4), -1))  # 20000*1024
 x_test_cr4_imag = np.reshape(x_test_cr4[:, 1, :, :], (len(x_test_cr4), -1))
-x_test_C = x_test_cr4_real - 0.5 + 1j * (x_test_cr4_imag - 0.5)  # recover complex,  why subtract 0.5
+x_test_C = x_test_cr4_real - 0.5 + 1j * (x_test_cr4_imag - 0.5)  # recover complex
 
 
 x_hat_cr4 = x_hat[0:limit1, :, :, :]
@@ -328,7 +328,7 @@ for i in range(1, batch_num):
     x_hat_i = x_hat[start:(start+limit1), :, :, :]
     x_hat_cr4 = keras.layers.concatenate([x_hat_cr4, x_hat_i], axis=0)
 
-x_hat_cr4_real = np.reshape(x_hat_cr4[:, 0, :, :], (len(x_hat_cr4), -1))       # 修改：按照batch切片方式提取各个CR的预测结果
+x_hat_cr4_real = np.reshape(x_hat_cr4[:, 0, :, :], (len(x_hat_cr4), -1))       
 x_hat_cr4_imag = np.reshape(x_hat_cr4[:, 1, :, :], (len(x_hat_cr4), -1))
 # print('x_hat_cr4.shape:', x_hat_cr4.shape)
 x_hat_C = x_hat_cr4_real - 0.5 + 1j * (x_hat_cr4_imag - 0.5)
@@ -360,6 +360,6 @@ power_d = np.sum(abs(X_hat) ** 2, axis=1)
 mse = np.sum(abs(x_test_C - x_hat_C) ** 2, axis=1)
 
 print("In " + envir + " environment")
-print("SM: NMSE of CR:8 is", 10 * math.log10(np.mean(mse / power)))
-print("SM: Correlation of CR:8 is ", np.mean(rho))
+print("NMSE of CR:8 is", 10 * math.log10(np.mean(mse / power)))
+print("Correlation of CR:8 is ", np.mean(rho))
 
