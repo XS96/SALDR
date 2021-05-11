@@ -11,26 +11,23 @@ import math
 import time
 import os
 
-'''
-SALDR
-SA 有效性测试
-'''
+# Enable GPU
+tf.compat.v1.reset_default_graph()
+os.environ["CUDA_VISIBLE_DEVICES"] = "2"
+config = tf.compat.v1.ConfigProto()
+config.gpu_options.allow_growth = True   
+sess = tf.compat.v1.Session(config=config)
+tf.compat.v1.keras.backend.set_session(sess)
 
-# tf.compat.v1.reset_default_graph()
-# os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-# config = tf.compat.v1.ConfigProto()
-# config.gpu_options.allow_growth = True   # 不全部占满显存, 按需分配
-# sess = tf.compat.v1.Session(config=config)
-# tf.compat.v1.keras.backend.set_session(sess)
 
-envir = 'indoor'  # 'indoor' or 'outdoor'
 # image params
 img_height = 32
 img_width = 32
 img_channels = 2
 img_total = img_height * img_width * img_channels  # 2048
 # network params
-encoded_dim1 = 256  # compress rate=1/4->dim.=512
+envir = 'indoor'  # 'indoor' or 'outdoor'
+encoded_dim1 = 256  #
 residual_num = 2
 
 batchsize = 200
@@ -153,7 +150,7 @@ def residual_block_decoded(y):
     return y
 
 
-# Bulid the autoencoder model of CsiNet
+# Bulid the autoencoder model of CsiNet-v1
 def residual_network(x):
     ip = x
     # encoder Net
@@ -231,13 +228,12 @@ x_test = np.reshape(x_test, (
 tStart = time.time()
 x_hat = autoencoder.predict(x_test)
 tEnd = time.time()
-print("It cost %f sec" % ((tEnd - tStart) / x_test.shape[0]))       # calculate the time of recontribute the CSI for
-# every channel matrix
+print("It cost %f sec" % ((tEnd - tStart) / x_test.shape[0]))       # calculate the time of recontribute the CSI
 
 # Calcaulating the NMSE and rho
 if envir == 'indoor':
     mat = sio.loadmat('./data/DATA_HtestFin_all.mat')
-    X_test = mat['HF_all']  # array     20000*4000 complex   4000=32*125   non_truncated data?
+    X_test = mat['HF_all']  # array     20000*4000 complex   4000=32*125
 
 elif envir == 'outdoor':
     mat = sio.loadmat('./data/DATA_HtestFout_all.mat')
@@ -246,7 +242,7 @@ elif envir == 'outdoor':
 X_test = np.reshape(X_test, (len(X_test), img_height, 125))         # 20000*32*125
 x_test_real = np.reshape(x_test[:, 0, :, :], (len(x_test), -1))         # 20000*1024
 x_test_imag = np.reshape(x_test[:, 1, :, :], (len(x_test), -1))
-x_test_C = x_test_real - 0.5 + 1j * (x_test_imag - 0.5)         # recover complex,  why subtract 0.5
+x_test_C = x_test_real - 0.5 + 1j * (x_test_imag - 0.5)         
 x_hat_real = np.reshape(x_hat[:, 0, :, :], (len(x_hat), -1))
 x_hat_imag = np.reshape(x_hat[:, 1, :, :], (len(x_hat), -1))
 x_hat_C = x_hat_real - 0.5 + 1j * (x_hat_imag - 0.5)
@@ -271,6 +267,6 @@ mse = np.sum(abs(x_test_C - x_hat_C) ** 2, axis=1)
 
 print("In " + envir + " environment")
 print("When dimension is", encoded_dim1)
-print("CsiNET: NMSE is ", 10 * math.log10(np.mean(mse / power)))
-print("CsiNet: Correlation is ", np.mean(rho))
+print("CsiNET-v1: NMSE is ", 10 * math.log10(np.mean(mse / power)))
+print("CsiNet-v1: Correlation is ", np.mean(rho))
 
