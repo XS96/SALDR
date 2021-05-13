@@ -310,28 +310,28 @@ batch_num = int(len(x_test)/batchsize)
 X_test = np.reshape(X_test, (len(X_test), img_height, 125))  # 20000*32*125
 
 
-# ###############################################################################################
-x_test_cr4 = x_test[0:limit1, :, :]
+# 
+x_test_cr8 = x_test[0:limit1, :, :]
 for i in range(1, batch_num):
     start = int(i*200)
     x_test_i = x_test[start:(start+limit1), :, :]
-    x_test_cr4 = keras.layers.concatenate([x_test_cr4, x_test_i], axis=0)
+    x_test_cr8 = keras.layers.concatenate([x_test_cr8, x_test_i], axis=0)
 
-x_test_cr4_real = np.reshape(x_test_cr4[:, 0, :, :], (len(x_test_cr4), -1))  # 20000*1024
-x_test_cr4_imag = np.reshape(x_test_cr4[:, 1, :, :], (len(x_test_cr4), -1))
-x_test_C = x_test_cr4_real - 0.5 + 1j * (x_test_cr4_imag - 0.5)  # recover complex
+x_test_cr8_real = np.reshape(x_test_cr8[:, 0, :, :], (len(x_test_cr8), -1))  # 20000*1024
+x_test_cr8_imag = np.reshape(x_test_cr8[:, 1, :, :], (len(x_test_cr8), -1))
+x_test_C = x_test_cr8_real - 0.5 + 1j * (x_test_cr8_imag - 0.5)  # recover complex
 
 
-x_hat_cr4 = x_hat[0:limit1, :, :, :]
+x_hat_cr8 = x_hat[0:limit1, :, :, :]
 for i in range(1, batch_num):
     start = int(i*200)
     x_hat_i = x_hat[start:(start+limit1), :, :, :]
-    x_hat_cr4 = keras.layers.concatenate([x_hat_cr4, x_hat_i], axis=0)
+    x_hat_cr8 = keras.layers.concatenate([x_hat_cr8, x_hat_i], axis=0)
 
-x_hat_cr4_real = np.reshape(x_hat_cr4[:, 0, :, :], (len(x_hat_cr4), -1))       
-x_hat_cr4_imag = np.reshape(x_hat_cr4[:, 1, :, :], (len(x_hat_cr4), -1))
-# print('x_hat_cr4.shape:', x_hat_cr4.shape)
-x_hat_C = x_hat_cr4_real - 0.5 + 1j * (x_hat_cr4_imag - 0.5)
+x_hat_cr8_real = np.reshape(x_hat_cr8[:, 0, :, :], (len(x_hat_cr8), -1))       
+x_hat_cr8_imag = np.reshape(x_hat_cr8[:, 1, :, :], (len(x_hat_cr8), -1))
+# print('x_hat_cr8.shape:', x_hat_cr8.shape)
+x_hat_C = x_hat_cr8_real - 0.5 + 1j * (x_hat_cr8_imag - 0.5)
 # print('x_hat_C.shape:', x_hat_C.shape)      # 5000, 1024
 x_hat_F = np.reshape(x_hat_C, (len(x_hat_C), img_height, img_width))  # 5000*32*32
 # zero fill subcarrier and do FFT on subcarrier axis
@@ -339,22 +339,22 @@ X_hat = np.fft.fft(np.concatenate((x_hat_F, np.zeros((len(x_hat_C), img_height, 
 X_hat = X_hat[:, :, 0:125]  # 5000*32*125
 
 
-X_test_cr4 = X_test[0:limit1, :, :]
+X_test_cr8 = X_test[0:limit1, :, :]
 for i in range(1, batch_num):
     start = int(i*200)
     X_test_i = X_test[start:(start+limit1), :, :]
-    X_test_cr4 = keras.layers.concatenate([X_test_cr4, X_test_i], axis=0)
+    X_test_cr8 = keras.layers.concatenate([X_test_cr8, X_test_i], axis=0)
 
 # caculate the cosine similarity
-n1 = np.sqrt(np.sum(np.conj(X_test_cr4) * X_test_cr4, axis=1))
+n1 = np.sqrt(np.sum(np.conj(X_test_cr8) * X_test_cr8, axis=1))
 n1 = n1.astype('float64')
 n2 = np.sqrt(np.sum(np.conj(X_hat) * X_hat, axis=1))
 n2 = n2.astype('float64')
-aa = abs(np.sum(np.conj(X_test_cr4) * X_hat, axis=1))
+aa = abs(np.sum(np.conj(X_test_cr8) * X_hat, axis=1))
 rho = np.mean(aa / (n1 * n2), axis=1)
 
 X_hat = np.reshape(X_hat, (len(X_hat), -1))
-X_test_cr4 = np.reshape(X_test_cr4, (len(X_test_cr4), -1))
+X_test_cr8 = np.reshape(X_test_cr8, (len(X_test_cr8), -1))
 power = np.sum(abs(x_test_C) ** 2, axis=1)
 power_d = np.sum(abs(X_hat) ** 2, axis=1)
 mse = np.sum(abs(x_test_C - x_hat_C) ** 2, axis=1)
